@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Comparador de textos</title>
+  <script>
+    try {
+      var saved = localStorage.getItem('comparadorTextos.v1');
+      var preferred = null;
+      if (saved) {
+        var parsed = JSON.parse(saved);
+        if (parsed && (parsed.theme === 'light' || parsed.theme === 'dark')) preferred = parsed.theme;
+      }
+      if (!preferred && window.matchMedia) {
+        preferred = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      if (preferred) document.documentElement.dataset.theme = preferred;
+    } catch (error) { /* ignore */ }
+  </script>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main" data-i18n="app.skip">Saltar al contenido</a>
+
+  <header class="app-header">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">⇄</span>
+      <div>
+        <h1 data-i18n="app.title">Comparador de textos</h1>
+        <p data-i18n="app.subtitle">Compara, revisa y exporta diferencias sin salir de tu navegador.</p>
+      </div>
+    </div>
+    <div class="header-controls">
+      <label class="field header-field">
+        <span class="field-label" data-i18n="language.label">Idioma</span>
+        <select id="language-select">
+          <option value="es">Español</option>
+          <option value="en">English</option>
+        </select>
+      </label>
+      <button id="theme-toggle" class="icon-button" type="button" data-i18n-title="theme.toggle" data-i18n-aria-label="theme.toggle" aria-label="Cambiar entre tema claro y oscuro">
+        <svg class="icon icon-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"/></svg>
+        <svg class="icon icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      </button>
+      <button id="print-button" class="button" type="button" data-i18n="actions.print">Imprimir / PDF</button>
+    </div>
+  </header>
+
+  <main id="main" class="app-main">
+    <section class="workspace" aria-label="Área de trabajo" data-i18n-aria-label="workspace.label">
+      <div class="input-grid">
+        <article class="panel">
+          <div class="panel-head">
+            <label class="panel-title" for="original-text" data-i18n="panel.original">Texto original</label>
+            <span id="original-meta" class="panel-meta"></span>
+            <button class="button button-small" type="button" data-load-target="original" data-i18n="panel.load" data-i18n-title="panel.fileHint">Cargar archivo</button>
+            <input id="original-file" class="file-input" type="file" accept=".txt,.md,.csv,.html,.htm,.css,.js,.json" hidden>
+          </div>
+          <textarea id="original-text" class="text-input" spellcheck="false" data-i18n-placeholder="panel.placeholder.original" placeholder="Escribe o pega aquí el texto original…"></textarea>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head">
+            <label class="panel-title" for="modified-text" data-i18n="panel.modified">Texto nuevo</label>
+            <span id="modified-meta" class="panel-meta"></span>
+            <button class="button button-small" type="button" data-load-target="modified" data-i18n="panel.load" data-i18n-title="panel.fileHint">Cargar archivo</button>
+            <input id="modified-file" class="file-input" type="file" accept=".txt,.md,.csv,.html,.htm,.css,.js,.json" hidden>
+          </div>
+          <textarea id="modified-text" class="text-input" spellcheck="false" data-i18n-placeholder="panel.placeholder.modified" placeholder="Escribe o pega aquí el texto nuevo…"></textarea>
+        </article>
+      </div>
+
+      <div class="toolbar">
+        <div class="toolbar-group">
+          <label class="field">
+            <span class="field-label" data-i18n="examples.label">Ejemplos</span>
+            <select id="examples-select"></select>
+          </label>
+          <button id="swap-button" class="button" type="button" data-i18n="actions.swap" data-i18n-title="actions.swapTitle">Intercambiar</button>
+          <button id="clear-button" class="button" type="button" data-i18n="actions.clear" data-i18n-title="actions.clearTitle">Limpiar</button>
+          <button id="reset-button" class="button" type="button" data-i18n="actions.reset" data-i18n-title="actions.resetTitle">Restablecer</button>
+          <button id="undo-button" class="icon-button" type="button" data-i18n-title="actions.undoTitle" data-i18n-aria-label="actions.undo" aria-label="Deshacer" disabled>
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h9a6 6 0 0 1 0 12h-3"/></svg>
+          </button>
+          <button id="redo-button" class="icon-button" type="button" data-i18n-title="actions.redoTitle" data-i18n-aria-label="actions.redo" aria-label="Rehacer" disabled>
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 14 5-5-5-5"/><path d="M20 9h-9a6 6 0 0 0 0 12h3"/></svg>
+          </button>
+        </div>
+
+        <div class="toolbar-group options-group" role="group" aria-label="Opciones de comparación" data-i18n-aria-label="options.title">
+          <span class="group-label" data-i18n="options.title">Opciones de comparación</span>
+          <label class="check"><input id="opt-ignore-case" type="checkbox"><span data-i18n="options.ignoreCase">Ignorar mayúsculas y minúsculas</span></label>
+          <label class="check"><input id="opt-ignore-extra" type="checkbox"><span data-i18n="options.ignoreExtraSpaces">Ignorar espacios adicionales</span></label>
+          <label class="check"><input id="opt-ignore-leading" type="checkbox"><span data-i18n="options.ignoreLeadingTrailing">Ignorar espacios al inicio y al final</span></label>
+          <label class="check"><input id="opt-ignore-blank" type="checkbox"><span data-i18n="options.ignoreBlankLines">Ignorar líneas vacías</span></label>
+          <label class="check"><input id="opt-exact" type="checkbox"><span data-i18n="options.exact">Comparar contenido exacto</span></label>
+        </div>
+
+        <div class="toolbar-group">
+          <label class="field">
+            <span class="field-label" data-i18n="view.label">Vista</span>
+            <select id="view-select">
+              <option value="side" data-i18n="view.side">Lado a lado</option>
+              <option value="unified" data-i18n="view.unified">Unificada</option>
+            </select>
+          </label>
+          <label class="field">
+            <span class="field-label" data-i18n="view.inline">Detalle</span>
+            <select id="inline-select">
+              <option value="word" data-i18n="view.inlineWord">Por palabras</option>
+              <option value="char" data-i18n="view.inlineChar">Por caracteres</option>
+              <option value="none" data-i18n="view.inlineNone">Sin detalle</option>
+            </select>
+          </label>
+          <label class="check" data-i18n-title="view.syncHint">
+            <input id="sync-scroll" type="checkbox" checked>
+            <span data-i18n="view.sync">Desplazamiento sincronizado</span>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <section class="results" aria-labelledby="results-title">
+      <h2 id="results-title" class="sr-only" data-i18n="results.title">Resultados de la comparación</h2>
+
+      <div class="results-summary">
+        <div class="stats" aria-live="polite">
+          <div class="stat stat-add"><strong id="stat-added">0</strong><span data-i18n="results.added">Agregadas</span></div>
+          <div class="stat stat-del"><strong id="stat-deleted">0</strong><span data-i18n="results.deleted">Eliminadas</span></div>
+          <div class="stat stat-mod"><strong id="stat-modified">0</strong><span data-i18n="results.modified">Modificadas</span></div>
+          <div class="stat stat-same"><strong id="stat-unchanged">0</strong><span data-i18n="results.unchanged">Sin cambios</span></div>
+        </div>
+        <div class="similarity">
+          <span class="similarity-label" data-i18n="results.similarity">Similitud</span>
+          <div id="similarity-bar" class="similarity-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Similitud" data-i18n-aria-label="results.similarity">
+            <span id="similarity-fill"></span>
+          </div>
+          <strong id="similarity-value">—</strong>
+        </div>
+      </div>
+
+      <div class="results-toolbar">
+        <div class="filters" role="group" aria-label="Filtrar resultados" data-i18n-aria-label="results.filters">
+          <span class="group-label" data-i18n="filters.label">Filtrar</span>
+          <button class="chip filter-chip" type="button" data-filter="all" aria-pressed="true" data-i18n="filters.all">Todas</button>
+          <button class="chip filter-chip" type="button" data-filter="add" aria-pressed="true" data-i18n="filters.added">Agregadas</button>
+          <button class="chip filter-chip" type="button" data-filter="del" aria-pressed="true" data-i18n="filters.deleted">Eliminadas</button>
+          <button class="chip filter-chip" type="button" data-filter="mod" aria-pressed="true" data-i18n="filters.modified">Modificadas</button>
+          <button class="chip filter-chip" type="button" data-filter="equal" aria-pressed="true" data-i18n="filters.unchanged">Sin cambios</button>
+        </div>
+
+        <div class="search">
+          <label class="sr-only" for="search-input" data-i18n="results.searchLabel">Buscar en los resultados</label>
+          <input id="search-input" type="search" autocomplete="off" data-i18n-placeholder="results.searchPlaceholder" placeholder="Buscar palabra o frase…">
+          <span id="search-count" class="search-count" aria-live="polite"></span>
+          <button id="search-prev" class="icon-button" type="button" data-i18n-title="results.searchPrev" data-i18n-aria-label="results.searchPrev" aria-label="Coincidencia anterior">↑</button>
+          <button id="search-next" class="icon-button" type="button" data-i18n-title="results.searchNext" data-i18n-aria-label="results.searchNext" aria-label="Siguiente coincidencia">↓</button>
+        </div>
+
+        <div class="button-groups">
+          <div class="button-group" role="group" aria-label="Copiar contenido" data-i18n-aria-label="results.copyGroup">
+            <button id="copy-original" class="button button-small" type="button" data-i18n="copy.original">Copiar original</button>
+            <button id="copy-modified" class="button button-small" type="button" data-i18n="copy.modified">Copiar nuevo</button>
+            <button id="copy-differences" class="button button-small" type="button" data-i18n="copy.differences">Copiar diferencias</button>
+            <button id="copy-report" class="button button-small" type="button" data-i18n="copy.report">Copiar informe</button>
+          </div>
+          <div class="button-group" role="group" aria-label="Exportar resultados" data-i18n-aria-label="results.exportGroup">
+            <button class="button button-small" type="button" data-export="txt">TXT</button>
+            <button class="button button-small" type="button" data-export="html">HTML</button>
+            <button class="button button-small" type="button" data-export="json">JSON</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="status-banner" class="banner" role="status" aria-live="polite"></div>
+      <div id="diff-output" class="diff-output" role="region" aria-label="Resultados de la comparación" data-i18n-aria-label="results.aria" tabindex="0"></div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <p data-i18n="app.local">Procesamiento 100% local. Tus textos no salen de este navegador.</p>
+    <button id="clear-storage" class="link-button" type="button" data-i18n="data.clear" data-i18n-title="data.clearTitle">Borrar datos guardados</button>
+  </footer>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="print-report" class="print-report" aria-hidden="true"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

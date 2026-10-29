@@ -1,0 +1,11 @@
+{
+  "name": "comparador-textos",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Comparador de textos local con vistas lado a lado y unificada",
+  "scripts": {
+    "start": "python3 -m http.server 8000",
+    "test": "node --test tests/"
+  }
+}
